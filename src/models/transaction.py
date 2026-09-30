@@ -4,7 +4,7 @@ Modelos de dominio para transacciones financieras y resultados de auditoría de 
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class DecisionStatus(str, Enum):
@@ -22,6 +22,14 @@ class Transaction(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     country: str = Field(..., min_length=2, max_length=2, example="AR")
     device_id: str = Field(..., example="dev-mac-01")
+
+    @field_validator("timestamp", mode="after")
+    @classmethod
+    def make_naive_utc(cls, v: datetime) -> datetime:
+        """Remueve tzinfo para garantizar comparaciones homogéneas con la base de datos."""
+        if v.tzinfo is not None:
+            return v.replace(tzinfo=None)
+        return v
 
 
 class RuleViolation(BaseModel):
